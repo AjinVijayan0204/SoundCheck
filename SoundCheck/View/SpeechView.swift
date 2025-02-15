@@ -15,6 +15,7 @@ struct SpeechView: View {
     private var player: AVPlayer { AVPlayer.sharedAudioPlayer }
     
     @State var isTranscribing: Bool = false
+    let soundClassifier = LiveAudioClassifier()
     //var frequencyAnalyser: FrequencyAnalyzer = FrequencyAnalyzer()
    // var audioAnalyser: AudioAnalyzer = AudioAnalyzer()
     
@@ -52,10 +53,12 @@ struct SpeechView: View {
         }
         if self.isTranscribing {
             speechRecognizer.startTranscribing()
+            soundClassifier.startAudio()
             //self.audioAnalyser.startMonitoring()
             //self.frequencyAnalyser.startMonitoring()
         } else {
             speechRecognizer.stopTranscribing()
+            soundClassifier.stopAudio()
             //self.audioAnalyser.stopMonitoring()
             //self.frequencyAnalyser.stopMonitoring()
         }

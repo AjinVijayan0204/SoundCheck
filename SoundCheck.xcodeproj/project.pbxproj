@@ -11,7 +11,7 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		8734EAC82D5109580092864F /* SoundCheck */ = {
+		8734EB5F2D6092CB0092864F /* SoundCheck */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = SoundCheck;
 			sourceTree = "<group>";
@@ -32,7 +32,7 @@
 		8734EABD2D5109580092864F = {
 			isa = PBXGroup;
 			children = (
-				8734EAC82D5109580092864F /* SoundCheck */,
+				8734EB5F2D6092CB0092864F /* SoundCheck */,
 				8734EAC72D5109580092864F /* Products */,
 			);
 			sourceTree = "<group>";
@@ -59,9 +59,6 @@
 			buildRules = (
 			);
 			dependencies = (
-			);
-			fileSystemSynchronizedGroups = (
-				8734EAC82D5109580092864F /* SoundCheck */,
 			);
 			name = SoundCheck;
 			packageProductDependencies = (
