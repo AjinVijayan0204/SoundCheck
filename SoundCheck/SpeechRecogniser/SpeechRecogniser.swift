@@ -10,6 +10,11 @@ import AVFoundation
 import Speech
 import Accelerate
 
+protocol TranscriptionDelagate {
+    //func didTranscriptionUpdated(_ transcription: String)
+    func didTranscriptionStopped(_ transcription: String, _ stoppedTranscribing: Bool)
+}
+
 actor SpeechRecogniser: ObservableObject {
     
     enum RecognizerError: Error {
@@ -35,11 +40,13 @@ actor SpeechRecogniser: ObservableObject {
     private var request: SFSpeechAudioBufferRecognitionRequest?
     private var task: SFSpeechRecognitionTask?
     private let recognizer: SFSpeechRecognizer?
-    
+    private var timeoutWorkItem: DispatchWorkItem?
     private let fftSize = 1024 // Power of 2 for FFT
     private let sampleRate: Double = 44100.0 // Standard sample rate
+    var delagate: TranscriptionDelagate?
     
     init() {
+    
         recognizer = SFSpeechRecognizer()
         guard recognizer != nil else {
             transcribe(RecognizerError.nilRecognizer)
@@ -60,9 +67,15 @@ actor SpeechRecogniser: ObservableObject {
         }
     }
     
+    func configure(delagate: TranscriptionDelagate) async {
+        self.delagate = delagate
+    }
+    
     nonisolated private func transcribe(_ message: String) {
         Task { @MainActor in
             transcript = message
+            await self.resetTimeout()
+            //await delagate?.didTranscriptionUpdated(transcript)
         }
     }
     
@@ -105,7 +118,32 @@ actor SpeechRecogniser: ObservableObject {
         }
     }
     
+    func resetAudioSession() {
+        let audioSession = AVAudioSession.sharedInstance()
+        do {
+            try audioSession.setCategory(.record, mode: .measurement, options: .duckOthers)
+            try audioSession.setActive(true, options: .notifyOthersOnDeactivation)
+            print("Audio session reset for recognition")
+        } catch {
+            print("Failed to reset audio session: \(error.localizedDescription)")
+        }
+    }
+    
+    private func resetTimeout() {
+        timeoutWorkItem?.cancel()  // Cancel previous timeout task
+        
+        let workItem = DispatchWorkItem { [weak self] in
+            print("Timeout reached, stopping recognition")
 
+            Task {
+                await self?.delagate?.didTranscriptionStopped(self?.transcript ?? "", true)
+                await self?.stopTranscribing()
+            }
+        }
+        
+        timeoutWorkItem = workItem
+        DispatchQueue.main.asyncAfter(deadline: .now() + 5, execute: workItem)  // Set 3-sec timeout
+    }
     
     private func transcribe() {
         guard let recognizer, recognizer.isAvailable else {
@@ -115,6 +153,7 @@ actor SpeechRecogniser: ObservableObject {
         
         do {
             let (audioEngine, request, buffer) = try Self.prepareEngine()
+            self.resetTimeout()
             self.audioEngine = audioEngine
             self.request = request
             self.task = recognizer.recognitionTask(with: request, resultHandler: { [weak self] result, error in

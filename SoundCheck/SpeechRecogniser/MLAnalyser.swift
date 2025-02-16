@@ -7,12 +7,18 @@
 import AVFoundation
 import SoundAnalysis
 
+protocol AuthDetector {
+    var authUser: String { get set }
+    func isAuthenticated()
+}
+
 class LiveAudioClassifier: NSObject, SNResultsObserving {
     private let audioEngine = AVAudioEngine()
     private var analyzer: SNAudioStreamAnalyzer?
     private let audioQueue = DispatchQueue(label: "AudioQueue")
     private var request: SNClassifySoundRequest?
     private var currentAudioFormat: AVAudioFormat? // Track the format manually
+    private var delagate: AuthDetector?
     
     override init() {
         super.init()
@@ -67,7 +73,8 @@ class LiveAudioClassifier: NSObject, SNResultsObserving {
         audioEngine.inputNode.removeTap(onBus: 0)
     }
 
-    func startAudio() {
+    func startAudio(delagate: AuthDetector) {
+        self.delagate = delagate
         setupAudio()
     }
     // MARK: - Process Classification Results
@@ -75,7 +82,10 @@ class LiveAudioClassifier: NSObject, SNResultsObserving {
         guard let classificationResult = result as? SNClassificationResult,
               let bestClassification = classificationResult.classifications.first else { return }
 
-        print("Speaker: \(bestClassification.identifier) (Confidence: \(bestClassification.confidence))")
+        //print("Speaker: \(bestClassification.identifier) (Confidence: \(bestClassification.confidence))")
+        if self.delagate?.authUser.lowercased() == bestClassification.identifier.lowercased() && bestClassification.confidence > 0.999 {
+            delagate?.isAuthenticated()
+        }
     }
 }
 
